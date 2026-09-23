@@ -1,13 +1,255 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Time-Rewind platforme: 5 fases</title>
-    <style>
-        *{margin: 0;padding: 0;box-sizing: border-box;touch-action: manipulation;}
+  <meta charset="UTF-8">
+  <title>Time-Rewind Platformer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #111;
+      color: #fff;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    canvas {
+      border: 3px solid #333;
+      background: #1a1a24;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+    }
+    .instructions {
+      margin-top: 15px;
+      text-align: center;
+      color: #aaa;
+    }
+    span.key {
+      background: #333;
+      color: #fff;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid #555;
+    }
+  </style>
 </head>
 <body>
-    
+
+  <canvas id="gameCanvas" width="800" height="400"></canvas>
+  <div class="instructions">
+    <p>Controles: <span class="key">A</span> / <span class="key">D</span> ou <span class="key">←</span> / <span class="key">→</span> para mover | <span class="key">W</span> / <span class="key">Espaço</span> ou <span class="key">↑</span> para pular</p>
+    <p>Aperte <span class="key">R</span> para voltar o tempo e criar um fantasma que repete seus passos!</p>
+  </div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// --- ESTADO DOS CONTROLES ---
+const keys = {
+  left: false,
+  right: false,
+  jump: false,
+  rewind: false
+};
+
+window.addEventListener('keydown', (e) => handleKey(e, true));
+window.addEventListener('keyup', (e) => handleKey(e, false));
+
+function handleKey(e, isPressed) {
+  if (['KeyA', 'ArrowLeft'].includes(e.code)) keys.left = isPressed;
+  if (['KeyD', 'ArrowRight'].includes(e.code)) keys.right = isPressed;
+  if (['KeyW', 'ArrowUp', 'Space'].includes(e.code)) keys.jump = isPressed;
+  if (e.code === 'KeyR') {
+    if (isPressed && !keys.rewind) triggerRewind();
+    keys.rewind = isPressed;
+  }
+}
+
+// --- MUNDO E FÍSICA ---
+const GRAVITY = 0.5;
+
+// Plataformas
+const platforms = [
+  { x: 0, y: 360, w: 800, h: 40 },   // Chão principal
+  { x: 150, y: 270, w: 120, h: 20 }, // Plataforma do botão
+  { x: 450, y: 220, w: 150, h: 20 }  // Plataforma elevada
+];
+
+// Botão e Porta
+const button = { x: 200, y: 260, w: 20, h: 10, pressed: false };
+const door = { x: 730, y: 280, w: 20, h: 80, open: false };
+
+// --- JOGADOR ---
+const player = {
+  x: 50,
+  y: 300,
+  w: 24,
+  h: 32,
+  vx: 0,
+  vy: 0,
+  speed: 4,
+  jumpForce: 10,
+  grounded: false,
+  history: [] // Armazena {x, y} a cada frame
+};
+
+// --- FANTASMA (Rastro Gravado) ---
+let ghost = null; // Objeto com { actions: [{x, y}], frameIndex: 0 }
+
+function triggerRewind() {
+  if (player.history.length === 0) return;
+
+  // Transforma o histórico atual do jogador no caminho do fantasma
+  ghost = {
+    actions: [...player.history],
+    frameIndex: 0
+  };
+
+  // Reseta o jogador para a posição inicial e limpa o histórico
+  player.x = 50;
+  player.y = 300;
+  player.vx = 0;
+  player.vy = 0;
+  player.history = [];
+}
+
+// --- ATUALIZAÇÃO DA LÓGICA ---
+function update() {
+  // 1. Movimento Horizontal do Jogador
+  if (keys.left) player.vx = -player.speed;
+  else if (keys.right) player.vx = player.speed;
+  else player.vx = 0;
+
+  // 2. Pulo
+  if (keys.jump && player.grounded) {
+    player.vy = -player.jumpForce;
+    player.grounded = false;
+  }
+
+  // Gravidade
+  player.vy += GRAVITY;
+
+  // Aplica velocidade
+  player.x += player.vx;
+  player.y += player.vy;
+
+  // Colisão com Limites da Tela
+  if (player.x < 0) player.x = 0;
+  if (player.x + player.w > canvas.width) player.x = canvas.width - player.w;
+
+  // Colisão do Jogador com Plataformas
+  player.grounded = false;
+  platforms.forEach(p => {
+    if (
+      player.x < p.x + p.w &&
+      player.x + player.w > p.x &&
+      player.y + player.h >= p.y &&
+      player.y + player.h <= p.y + player.vy + 1 &&
+      player.vy >= 0
+    ) {
+      player.grounded = true;
+      player.vy = 0;
+      player.y = p.y - player.h;
+    }
+  });
+
+  // Salva a posição no histórico do jogador
+  player.history.push({ x: player.x, y: player.y });
+
+  // 3. Atualiza o Fantasma (se existir)
+  let ghostCurrentPos = null;
+  if (ghost) {
+    if (ghost.frameIndex < ghost.actions.length) {
+      ghostCurrentPos = ghost.actions[ghost.frameIndex];
+      ghost.frameIndex++;
+    } else {
+      // Quando a gravação termina, ele permanece no último ponto
+      ghostCurrentPos = ghost.actions[ghost.actions.length - 1];
+    }
+  }
+
+  // 4. Lógica do Botão (Pressionado pelo Jogador OU pelo Fantasma)
+  const isPlayerOnButton = checkOverlap(player, button);
+  const isGhostOnButton = ghostCurrentPos ? checkOverlap({ ...ghostCurrentPos, w: player.w, h: player.h }, button) : false;
+
+  button.pressed = isPlayerOnButton || isGhostOnButton;
+  door.open = button.pressed;
+
+  // 5. Condição de Vitória (Chegar à porta aberta)
+  if (door.open && checkOverlap(player, door)) {
+    alert('Você venceu o nível usando a manipulação do tempo!');
+    // Reseta o jogo
+    ghost = null;
+    player.history = [];
+    player.x = 50;
+    player.y = 300;
+  }
+}
+
+// Auxiliar de colisão simples (AABB)
+function checkOverlap(rect1, rect2) {
+  return (
+    rect1.x < rect2.x + rect2.w &&
+    rect1.x + rect1.w > rect2.x &&
+    rect1.y < rect2.y + rect2.h &&
+    rect1.y + rect1.h > rect2.y
+  );
+}
+
+// --- RENDERIZAÇÃO GRÁFICA ---
+function draw() {
+  // Limpa a tela
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Desenha Plataformas
+  ctx.fillStyle = '#44475a';
+  platforms.forEach(p => ctx.fillRect(p.x, p.y, p.w, p.h));
+
+  // Desenha Botão
+  ctx.fillStyle = button.pressed ? '#50fa7b' : '#ff5555';
+  const buttonHeight = button.pressed ? 4 : button.h;
+  const buttonY = button.pressed ? button.y + 6 : button.y;
+  ctx.fillRect(button.x, buttonY, button.w, buttonHeight);
+
+  // Desenha Porta
+  if (!door.open) {
+    ctx.fillStyle = '#ffb86c';
+    ctx.fillRect(door.x, door.y, door.w, door.h);
+  } else {
+    ctx.strokeStyle = '#ffb86c';
+    ctx.setLineDash([4, 4]);
+    ctx.strokeRect(door.x, door.y, door.w, door.h);
+    ctx.setLineDash([]);
+  }
+
+  // Desenha Fantasma (Rastro de Tempo)
+  if (ghost) {
+    const frame = ghost.frameIndex < ghost.actions.length ? ghost.frameIndex : ghost.actions.length - 1;
+    const pos = ghost.actions[frame];
+
+    ctx.fillStyle = 'rgba(80, 250, 123, 0.4)';
+    ctx.fillRect(pos.x, pos.y, player.w, player.h);
+    ctx.strokeStyle = '#50fa7b';
+    ctx.strokeRect(pos.x, pos.y, player.w, player.h);
+  }
+
+  // Desenha Jogador Principal
+  ctx.fillStyle = '#8be9fd';
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+}
+
+// --- LOOP DO JOGO ---
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// Inicializa o jogo
+requestAnimationFrame(loop);
+</script>
+
 </body>
 </html>
