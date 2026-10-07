@@ -398,9 +398,9 @@ function triggerRewind() {
   ghost = {
     actions: [...player.history],
     frameIndex: 0,
-    timer: 1200,    // <--- Alterado para 1200 quadros (20 segundos)
-    maxTimer: 1200, // <--- Ajustada a barra do HUD para 20 segundos
-    speedMultiplier: 2, // <--- Fantasma se move 2x mais rápido
+    timer: 1200,          // Mantido em 20 segundos
+    maxTimer: 1200,
+    speedMultiplier: 1.5, // <--- Ajustado para 1.5x a velocidade original
     active: true
   };
   const lvl = levels[currentLevelIndex];
@@ -444,8 +444,8 @@ function update() {
   let ghostPos = null;
   if (ghost && ghost.active) {
     if (ghost.frameIndex < ghost.actions.length) {
-      ghostPos = ghost.actions[ghost.frameIndex];
-      // Avança a reprodução do fantasma mais rápido (2x)
+      ghostPos = ghost.actions[Math.floor(ghost.frameIndex)];
+      // Avança a reprodução a 1.5x por frame
       ghost.frameIndex += ghost.speedMultiplier;
       if (ghost.frameIndex >= ghost.actions.length) {
         ghost.frameIndex = ghost.actions.length - 1;
