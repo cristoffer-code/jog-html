@@ -1,392 +1,1176 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Time-Rewind Platformer com Personagens e Skip</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; touch-action: manipulation; }
-    body {
-      background: #111;
-      color: #fff;
-      font-family: monospace;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      overflow: hidden;
-    }
-    
-    .overlay {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(17, 17, 17, 0.95);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
-      padding: 20px;
-      text-align: center;
-    }
-    .overlay h1 { color: #8be9fd; margin-bottom: 10px; font-size: 24px; }
-    .overlay h2 { color: #50fa7b; margin-bottom: 15px; }
-    .overlay p { color: #f8f8f2; margin-bottom: 10px; max-width: 500px; font-size: 14px; line-height: 1.4; }
-    
-    .btn-menu {
-      background: #bd93f9;
-      color: #111;
-      border: none;
-      padding: 12px 24px;
-      font-size: 16px;
-      font-weight: bold;
-      border-radius: 8px;
-      cursor: pointer;
-      margin: 5px;
-    }
-    .btn-menu:active { transform: scale(0.95); }
-    
-    .diff-container { display: flex; gap: 10px; margin-top: 15px; }
-    .btn-easy { background: #50fa7b; }
-    .btn-normal { background: #ffb86c; }
-    .btn-hard { background: #ff5555; color: #fff; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Time-Rewind Platformer</title>
 
-    canvas {
-      border: 2px solid #333;
-      background: #1a1a24;
-      box-shadow: 0 0 15px rgba(0,0,0,0.8);
-      max-width: 98vw;
-      max-height: 48vh;
-    }
-    
-    .controls {
-      display: flex;
-      justify-content: space-between;
-      width: 100%;
-      max-width: 800px;
-      padding: 10px 15px;
-      margin-top: 5px;
-    }
-    .d-pad, .action-btns { display: flex; gap: 10px; align-items: center; }
-    .btn {
-      background: #282a36;
-      border: 2px solid #6272a4;
-      color: #fff;
-      font-size: 18px;
-      font-weight: bold;
-      width: 55px;
-      height: 55px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      user-select: none;
-      cursor: pointer;
-    }
-    .btn:active { background: #44475a; transform: scale(0.95); }
-    .btn-rewind { background: #ff5555; border-color: #ff79c6; }
-    .btn-jump { background: #8be9fd; border-color: #50fa7b; color: #111; }
-    .btn-skip { background: #f1fa8c; border-color: #ffb86c; color: #111; font-size: 12px; font-weight: bold; }
-  </style>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #090a10;
+  color: white;
+  font-family: monospace;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.screen {
+  width: 100%;
+  max-width: 900px;
+  text-align: center;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* MENU */
+
+#menu {
+  padding: 40px 20px;
+}
+
+.title {
+  font-size: 48px;
+  color: #8be9fd;
+  text-shadow: 0 0 20px #8be9fd;
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  color: #aaa;
+  margin-bottom: 40px;
+  font-size: 18px;
+}
+
+.menu-box {
+  background: #151722;
+  border: 2px solid #44475a;
+  border-radius: 15px;
+  padding: 35px;
+  max-width: 550px;
+  margin: auto;
+  box-shadow: 0 0 40px rgba(0,0,0,.5);
+}
+
+.menu-box p {
+  color: #bbb;
+  line-height: 1.7;
+  margin-bottom: 25px;
+}
+
+button {
+  font-family: monospace;
+  cursor: pointer;
+}
+
+.start-button {
+  background: #50fa7b;
+  color: #101010;
+  border: none;
+  padding: 15px 45px;
+  font-size: 20px;
+  font-weight: bold;
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(80,250,123,.3);
+}
+
+.start-button:hover {
+  transform: scale(1.05);
+}
+
+/* JOGO */
+
+#gameScreen {
+  padding: 15px;
+}
+
+#gameCanvas {
+  width: 800px;
+  max-width: 100%;
+  border: 3px solid #333;
+  background: #1a1a24;
+  box-shadow: 0 0 25px rgba(0,0,0,.8);
+}
+
+.hud {
+  width: 800px;
+  max-width: 100%;
+  margin: 0 auto 8px;
+  display: flex;
+  justify-content: space-between;
+  color: #aaa;
+}
+
+.hud strong {
+  color: #8be9fd;
+}
+
+.instructions {
+  margin-top: 12px;
+  color: #999;
+  font-size: 14px;
+}
+
+.key {
+  background: #333;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #555;
+}
+
+/* TELA FINAL */
+
+#endScreen {
+  padding: 40px;
+}
+
+.end-title {
+  font-size: 42px;
+  color: #50fa7b;
+  text-shadow: 0 0 20px #50fa7b;
+  margin-bottom: 20px;
+}
+
+.end-box {
+  background: #151722;
+  border: 2px solid #44475a;
+  padding: 35px;
+  border-radius: 15px;
+  max-width: 550px;
+  margin: auto;
+}
+
+.end-box p {
+  color: #bbb;
+  margin-bottom: 25px;
+}
+</style>
 </head>
+
 <body>
 
-  <!-- TUTORIAL -->
-  <div id="tutorialOverlay" class="overlay">
-    <h1>TIME-REWIND PLATFORMER</h1>
-    <p><b>Como Jogar:</b> Chegue até a porta amarela para passar de fase.</p>
-    <p>Pressione o botão vermelho (R) para voltar o tempo e criar um <b>Fantasma Temporal</b> que ajudará você a segurar botões!</p>
-    
-    <h2>Escolha a Dificuldade:</h2>
-    <div class="diff-container">
-      <button class="btn-menu btn-easy" onclick="startGame('easy')">Fácil</button>
-      <button class="btn-menu btn-normal" onclick="startGame('normal')">Normal</button>
-      <button class="btn-menu btn-hard" onclick="startGame('hard')">Difícil</button>
-    </div>
+<!-- ================= MENU ================= -->
+
+<div id="menu" class="screen">
+
+  <h1 class="title">TIME-REWIND</h1>
+
+  <p class="subtitle">
+    Manipule o tempo. Crie seu próprio fantasma.
+  </p>
+
+  <div class="menu-box">
+
+    <p>
+      Use seu passado para ajudar o seu presente.<br>
+      Pressione <b>R</b> para voltar ao início da fase.<br>
+      Seu antigo caminho será transformado em um fantasma.
+    </p>
+
+    <p>
+      Cada fase possui um novo desafio.
+      Trabalhe junto com seu próprio passado para chegar à porta.
+    </p>
+
+    <button class="start-button" onclick="startGame()">
+      JOGAR
+    </button>
+
   </div>
 
-  <!-- VITÓRIA -->
-  <div id="winOverlay" class="overlay" style="display: none;">
-    <h1>PARABÉNS!</h1>
-    <p>Você completou todas as fases!</p>
-    <button class="btn-menu" onclick="resetGame()">Jogar Novamente</button>
+</div>
+
+
+<!-- ================= JOGO ================= -->
+
+<div id="gameScreen" class="screen hidden">
+
+  <div class="hud">
+    <div>FASE: <strong id="levelText">1 / 6</strong></div>
+    <div>STATUS: <strong id="statusText">JOGANDO</strong></div>
   </div>
 
   <canvas id="gameCanvas" width="800" height="400"></canvas>
 
-  <!-- CONTROLES -->
-  <div class="controls">
-    <div class="d-pad">
-      <div class="btn" id="btnLeft">←</div>
-      <div class="btn" id="btnRight">→</div>
-    </div>
-    <div class="action-btns">
-      <div class="btn btn-skip" id="btnSkip" onclick="skipLevel()">SKIP ▶</div>
-      <div class="btn btn-rewind" id="btnRewind">R</div>
-      <div class="btn btn-jump" id="btnJump">↑</div>
-    </div>
+  <div class="instructions">
+    <p>
+      <span class="key">A</span>/<span class="key">D</span>
+      ou
+      <span class="key">←</span>/<span class="key">→</span>
+      mover |
+      <span class="key">W</span>/<span class="key">↑</span>/<span class="key">ESPAÇO</span>
+      pular |
+      <span class="key">R</span> voltar no tempo
+    </p>
   </div>
 
+</div>
+
+
+<!-- ================= FINAL ================= -->
+
+<div id="endScreen" class="screen hidden">
+
+  <h1 class="end-title">VOCÊ CONSEGUIU!</h1>
+
+  <div class="end-box">
+
+    <p>
+      Você dominou todas as fases e aprendeu a trabalhar
+      junto com o seu próprio passado.
+    </p>
+
+    <p>
+      ⏳ O tempo não pode ser controlado.<br>
+      Mas talvez possa ser usado.
+    </p>
+
+    <button class="start-button" onclick="startGame()">
+      JOGAR NOVAMENTE
+    </button>
+
+  </div>
+
+</div>
+
+
 <script>
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
 
-let currentLevelIndex = 0;
-let difficulty = 'normal';
-let isGameRunning = false;
-let rewindsUsed = 0;
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
 
-// --- FASES ---
+const menu = document.getElementById("menu");
+const gameScreen = document.getElementById("gameScreen");
+const endScreen = document.getElementById("endScreen");
+
+const levelText = document.getElementById("levelText");
+const statusText = document.getElementById("statusText");
+
+
+/* =========================================================
+   CONTROLES
+========================================================= */
+
+const keys = {
+  left: false,
+  right: false,
+  jump: false,
+  rewind: false
+};
+
+window.addEventListener("keydown", e => {
+
+  if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space"].includes(e.code)){
+    e.preventDefault();
+  }
+
+  if(e.code === "KeyA" || e.code === "ArrowLeft")
+    keys.left = true;
+
+  if(e.code === "KeyD" || e.code === "ArrowRight")
+    keys.right = true;
+
+  if(e.code === "KeyW" || e.code === "ArrowUp" || e.code === "Space")
+    keys.jump = true;
+
+  if(e.code === "KeyR" && !keys.rewind){
+    triggerRewind();
+    keys.rewind = true;
+  }
+
+});
+
+window.addEventListener("keyup", e => {
+
+  if(e.code === "KeyA" || e.code === "ArrowLeft")
+    keys.left = false;
+
+  if(e.code === "KeyD" || e.code === "ArrowRight")
+    keys.right = false;
+
+  if(e.code === "KeyW" || e.code === "ArrowUp" || e.code === "Space")
+    keys.jump = false;
+
+  if(e.code === "KeyR")
+    keys.rewind = false;
+
+});
+
+
+/* =========================================================
+   CONFIGURAÇÕES
+========================================================= */
+
+const GRAVITY = 0.5;
+const MAX_LEVEL = 6;
+
+
+/* =========================================================
+   FASES
+========================================================= */
+
 const levels = [
-  { platforms: [{ x: 0, y: 360, w: 800, h: 40 }, { x: 200, y: 280, w: 120, h: 20 }], button: { x: 250, y: 270, w: 20, h: 10, pressed: false }, door: { x: 730, y: 280, w: 20, h: 80, open: false }, spawn: { x: 50, y: 300 } },
-  { platforms: [{ x: 0, y: 360, w: 250, h: 40 }, { x: 300, y: 300, w: 200, h: 20 }, { x: 580, y: 360, w: 220, h: 40 }], button: { x: 380, y: 290, w: 20, h: 10, pressed: false }, door: { x: 730, y: 280, w: 20, h: 80, open: false }, spawn: { x: 50, y: 300 } },
-  { platforms: [{ x: 0, y: 360, w: 800, h: 40 }, { x: 150, y: 250, w: 100, h: 20 }, { x: 400, y: 200, w: 120, h: 20 }], button: { x: 450, y: 190, w: 20, h: 10, pressed: false }, door: { x: 730, y: 280, w: 20, h: 80, open: false }, spawn: { x: 50, y: 300 } },
-  { platforms: [{ x: 0, y: 360, w: 800, h: 40 }, { x: 600, y: 260, w: 120, h: 20 }, { x: 300, y: 200, w: 100, h: 20 }], button: { x: 650, y: 250, w: 20, h: 10, pressed: false }, door: { x: 340, y: 120, w: 20, h: 80, open: false }, spawn: { x: 50, y: 300 } },
-  { platforms: [{ x: 0, y: 360, w: 200, h: 40 }, { x: 250, y: 280, w: 100, h: 20 }, { x: 400, y: 200, w: 100, h: 20 }, { x: 550, y: 280, w: 250, h: 40 }], button: { x: 290, y: 270, w: 20, h: 10, pressed: false }, door: { x: 730, y: 200, w: 20, h: 80, open: false }, spawn: { x: 50, y: 300 } }
+
+/* ================= FASE 1 ================= */
+
+{
+  name: "Primeiro Passo",
+
+  spawn: {x:50,y:300},
+
+  platforms: [
+    {x:0,y:360,w:800,h:40},
+    {x:150,y:270,w:120,h:20},
+    {x:450,y:220,w:150,h:20}
+  ],
+
+  buttons: [
+    {x:200,y:260,w:25,h:10}
+  ],
+
+  door: {
+    x:730,
+    y:280,
+    w:25,
+    h:80
+  },
+
+  spikes: []
+},
+
+/* ================= FASE 2 ================= */
+
+{
+  name: "Dois Tempos",
+
+  spawn: {x:40,y:300},
+
+  platforms: [
+    {x:0,y:360,w:800,h:40},
+    {x:100,y:280,w:130,h:20},
+    {x:330,y:250,w:120,h:20},
+    {x:560,y:200,w:130,h:20}
+  ],
+
+  buttons: [
+    {x:150,y:270,w:25,h:10},
+    {x:600,y:190,w:25,h:10}
+  ],
+
+  door: {
+    x:740,
+    y:280,
+    w:25,
+    h:80
+  },
+
+  spikes: []
+},
+
+/* ================= FASE 3 ================= */
+
+{
+  name: "Perigo",
+
+  spawn: {x:40,y:300},
+
+  platforms: [
+    {x:0,y:360,w:170,h:40},
+    {x:250,y:360,w:160,h:40},
+    {x:500,y:360,w:300,h:40},
+    {x:120,y:270,w:100,h:20},
+    {x:350,y:220,w:110,h:20},
+    {x:570,y:270,w:100,h:20}
+  ],
+
+  buttons: [
+    {x:155,y:350,w:25,h:10},
+    {x:390,y:210,w:25,h:10}
+  ],
+
+  door: {
+    x:740,
+    y:280,
+    w:25,
+    h:80
+  },
+
+  spikes: [
+    {x:170,y:340,w:80,h:20},
+    {x:410,y:340,w:90,h:20}
+  ]
+},
+
+/* ================= FASE 4 ================= */
+
+{
+  name: "O Labirinto",
+
+  spawn: {x:40,y:300},
+
+  platforms: [
+    {x:0,y:360,w:120,h:40},
+    {x:180,y:310,w:100,h:20},
+    {x:340,y:250,w:100,h:20},
+    {x:500,y:190,w:100,h:20},
+    {x:680,y:250,w:120,h:20}
+  ],
+
+  buttons: [
+    {x:220,y:300,w:25,h:10},
+    {x:380,y:240,w:25,h:10},
+    {x:540,y:180,w:25,h:10}
+  ],
+
+  door: {
+    x:750,
+    y:170,
+    w:25,
+    h:80
+  },
+
+  spikes: [
+    {x:120,y:340,w:60,h:20},
+    {x:280,y:340,w:60,h:20},
+    {x:440,y:340,w:60,h:20},
+    {x:600,y:340,w:80,h:20}
+  ]
+},
+
+/* ================= FASE 5 ================= */
+
+{
+  name: "Passado Perigoso",
+
+  spawn: {x:30,y:300},
+
+  platforms: [
+    {x:0,y:360,w:100,h:40},
+    {x:150,y:300,w:100,h:20},
+    {x:300,y:240,w:100,h:20},
+    {x:450,y:300,w:100,h:20},
+    {x:600,y:220,w:100,h:20},
+    {x:720,y:300,w:80,h:60}
+  ],
+
+  buttons: [
+    {x:190,y:290,w:25,h:10},
+    {x:340,y:230,w:25,h:10},
+    {x:490,y:290,w:25,h:10},
+    {x:640,y:210,w:25,h:10}
+  ],
+
+  door: {
+    x:750,
+    y:220,
+    w:25,
+    h:80
+  },
+
+  spikes: [
+    {x:100,y:340,w:50,h:20},
+    {x:250,y:340,w:50,h:20},
+    {x:400,y:340,w:50,h:20},
+    {x:550,y:340,w:50,h:20},
+    {x:700,y:340,w:20,h:20}
+  ]
+},
+
+/* ================= FASE 6 ================= */
+
+{
+  name: "Paradoxo",
+
+  spawn: {x:30,y:300},
+
+  platforms: [
+    {x:0,y:360,w:90,h:40},
+    {x:130,y:300,w:90,h:20},
+    {x:270,y:240,w:90,h:20},
+    {x:410,y:180,w:90,h:20},
+    {x:550,y:240,w:90,h:20},
+    {x:690,y:180,w:110,h:20}
+  ],
+
+  buttons: [
+    {x:165,y:290,w:25,h:10},
+    {x:305,y:230,w:25,h:10},
+    {x:445,y:170,w:25,h:10},
+    {x:585,y:230,w:25,h:10},
+    {x:730,y:170,w:25,h:10}
+  ],
+
+  door: {
+    x:760,
+    y:100,
+    w:25,
+    h:80
+  },
+
+  spikes: [
+    {x:90,y:340,w:40,h:20},
+    {x:220,y:340,w:50,h:20},
+    {x:360,y:340,w:50,h:20},
+    {x:500,y:340,w:50,h:20},
+    {x:640,y:340,w:50,h:20}
+  ]
+}
+
 ];
 
-let GRAVITY = 0.5;
 
-// --- PERSONAGEM PRINCIPAL ---
-const player = {
-  x: 50, y: 300, w: 24, h: 32,
-  vx: 0, vy: 0, speed: 4, jumpForce: 10,
-  grounded: false, facing: 'right', history: []
-};
+/* =========================================================
+   ESTADO
+========================================================= */
+
+let currentLevel = 0;
+let levelData;
 
 let ghost = null;
 
-function applyDifficulty(diff) {
-  difficulty = diff;
-  if (diff === 'easy') { player.speed = 5; player.jumpForce = 11; }
-  else if (diff === 'normal') { player.speed = 4; player.jumpForce = 10; }
-  else if (diff === 'hard') { player.speed = 3.5; player.jumpForce = 9.5; }
+let gameRunning = false;
+let levelFinished = false;
+
+let player;
+
+
+/* =========================================================
+   CRIAR JOGADOR
+========================================================= */
+
+function createPlayer(){
+
+  return {
+
+    x: levelData.spawn.x,
+    y: levelData.spawn.y,
+
+    w: 24,
+    h: 32,
+
+    vx: 0,
+    vy: 0,
+
+    speed: 4,
+    jumpForce: 10,
+
+    grounded: false,
+
+    history: []
+
+  };
+
 }
 
-function startGame(diff) {
-  applyDifficulty(diff);
-  document.getElementById('tutorialOverlay').style.display = 'none';
-  document.getElementById('winOverlay').style.display = 'none';
-  currentLevelIndex = 0;
-  loadLevel(currentLevelIndex);
-  isGameRunning = true;
+
+/* =========================================================
+   INICIAR JOGO
+========================================================= */
+
+function startGame(){
+
+  menu.classList.add("hidden");
+  endScreen.classList.add("hidden");
+  gameScreen.classList.remove("hidden");
+
+  currentLevel = 0;
+
+  loadLevel();
+
+  gameRunning = true;
+
 }
 
-function loadLevel(index) {
-  const lvl = levels[index];
-  player.x = lvl.spawn.x;
-  player.y = lvl.spawn.y;
-  player.vx = 0; player.vy = 0;
-  player.history = [];
+
+/* =========================================================
+   CARREGAR FASE
+========================================================= */
+
+function loadLevel(){
+
+  levelData = levels[currentLevel];
+
+  player = createPlayer();
+
   ghost = null;
-  rewindsUsed = 0;
-  lvl.button.pressed = false;
-  lvl.door.open = false;
+
+  levelFinished = false;
+
+  levelText.textContent =
+    `${currentLevel + 1} / ${MAX_LEVEL}`;
+
+  statusText.textContent =
+    levelData.name;
+
 }
 
-function skipLevel() {
-  if (!isGameRunning) return;
-  currentLevelIndex++;
-  if (currentLevelIndex < levels.length) {
-    loadLevel(currentLevelIndex);
-  } else {
-    isGameRunning = false;
-    document.getElementById('winOverlay').style.display = 'flex';
-  }
+
+/* =========================================================
+   REINICIAR FASE
+========================================================= */
+
+function restartLevel(){
+
+  player = createPlayer();
+
+  ghost = null;
+
+  levelFinished = false;
+
 }
 
-function resetGame() {
-  document.getElementById('winOverlay').style.display = 'none';
-  document.getElementById('tutorialOverlay').style.display = 'flex';
-  isGameRunning = false;
+
+/* =========================================================
+   VOLTAR NO TEMPO
+========================================================= */
+
+function triggerRewind(){
+
+  if(!gameRunning) return;
+
+  if(player.history.length < 20) return;
+
+  ghost = {
+
+    actions: [...player.history],
+
+    frameIndex: 0
+
+  };
+
+  player = createPlayer();
+
 }
 
-// --- CONTROLES DE TECLADO E MOUSE ---
-const keys = { left: false, right: false, jump: false, rewind: false };
 
-window.addEventListener('keydown', (e) => handleKey(e, true));
-window.addEventListener('keyup', (e) => handleKey(e, false));
+/* =========================================================
+   COLISÃO
+========================================================= */
 
-function handleKey(e, isPressed) {
-  if (['KeyA', 'ArrowLeft'].includes(e.code)) keys.left = isPressed;
-  if (['KeyD', 'ArrowRight'].includes(e.code)) keys.right = isPressed;
-  if (['KeyW', 'ArrowUp', 'Space'].includes(e.code)) keys.jump = isPressed;
-  if (e.code === 'KeyR') {
-    if (isPressed && !keys.rewind && isGameRunning) triggerRewind();
-    keys.rewind = isPressed;
-  }
+function checkOverlap(a,b){
+
+  return (
+
+    a.x < b.x + b.w &&
+    a.x + a.w > b.x &&
+    a.y < b.y + b.h &&
+    a.y + a.h > b.y
+
+  );
+
 }
 
-function bindTouch(id, keyName, isRewind = false) {
-  const el = document.getElementById(id);
-  el.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    if (isRewind && isGameRunning) triggerRewind();
-    keys[keyName] = true;
-  });
-  el.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    keys[keyName] = false;
-  });
-}
 
-bindTouch('btnLeft', 'left');
-bindTouch('btnRight', 'right');
-bindTouch('btnJump', 'jump');
-bindTouch('btnRewind', 'rewind', true);
+/* =========================================================
+   ATUALIZAÇÃO
+========================================================= */
 
-function triggerRewind() {
-  if (player.history.length === 0) return;
-  rewindsUsed++;
-  ghost = { actions: [...player.history], frameIndex: 0 };
-  const lvl = levels[currentLevelIndex];
-  player.x = lvl.spawn.x;
-  player.y = lvl.spawn.y;
-  player.vx = 0; player.vy = 0;
-  player.history = [];
-}
+function update(){
 
-// --- LÓGICA DO JOGO ---
-function update() {
-  if (!isGameRunning) return;
+  if(!gameRunning || levelFinished)
+    return;
 
-  const lvl = levels[currentLevelIndex];
 
-  if (keys.left) { player.vx = -player.speed; player.facing = 'left'; }
-  else if (keys.right) { player.vx = player.speed; player.facing = 'right'; }
-  else player.vx = 0;
+  /* MOVIMENTO */
 
-  if (keys.jump && player.grounded) {
+  if(keys.left)
+    player.vx = -player.speed;
+
+  else if(keys.right)
+    player.vx = player.speed;
+
+  else
+    player.vx = 0;
+
+
+  /* PULO */
+
+  if(keys.jump && player.grounded){
+
     player.vy = -player.jumpForce;
+
     player.grounded = false;
+
   }
+
+
+  /* GRAVIDADE */
 
   player.vy += GRAVITY;
+
+
+  /* MOVIMENTO */
+
   player.x += player.vx;
   player.y += player.vy;
 
-  if (player.x < 0) player.x = 0;
-  if (player.x + player.w > canvas.width) player.x = canvas.width - player.w;
 
-  if (player.y > canvas.height) loadLevel(currentLevelIndex);
+  /* LIMITES */
+
+  if(player.x < 0)
+    player.x = 0;
+
+  if(player.x + player.w > canvas.width)
+    player.x = canvas.width - player.w;
+
+
+  /* COLISÃO PLATAFORMAS */
 
   player.grounded = false;
-  lvl.platforms.forEach(p => {
-    if (
-      player.x < p.x + p.w && player.x + player.w > p.x &&
-      player.y + player.h >= p.y && player.y + player.h <= p.y + player.vy + 1 &&
+
+  levelData.platforms.forEach(p => {
+
+    if(
+
+      player.x < p.x + p.w &&
+      player.x + player.w > p.x &&
+      player.y + player.h >= p.y &&
+      player.y + player.h <= p.y + player.vy + 1 &&
       player.vy >= 0
-    ) {
+
+    ){
+
       player.grounded = true;
+
       player.vy = 0;
+
       player.y = p.y - player.h;
+
     }
+
   });
 
-  player.history.push({ x: player.x, y: player.y, facing: player.facing });
+
+  /* HISTÓRICO */
+
+  player.history.push({
+
+    x: player.x,
+    y: player.y
+
+  });
+
+
+  /* FANTASMA */
 
   let ghostPos = null;
-  if (ghost) {
-    if (ghost.frameIndex < ghost.actions.length) {
-      ghostPos = ghost.actions[ghost.frameIndex];
+
+  if(ghost){
+
+    if(ghost.frameIndex < ghost.actions.length){
+
+      ghostPos =
+        ghost.actions[ghost.frameIndex];
+
       ghost.frameIndex++;
-    } else {
-      ghostPos = ghost.actions[ghost.actions.length - 1];
+
     }
+
+    else{
+
+      ghostPos =
+        ghost.actions[ghost.actions.length - 1];
+
+    }
+
   }
 
-  const pOnBtn = checkOverlap(player, lvl.button);
-  const gOnBtn = ghostPos ? checkOverlap({ ...ghostPos, w: player.w, h: player.h }, lvl.button) : false;
 
-  lvl.button.pressed = pOnBtn || gOnBtn;
-  lvl.door.open = lvl.button.pressed;
+  /* BOTÕES */
 
-  if (lvl.door.open && checkOverlap(player, lvl.door)) {
-    const stars = rewindsUsed <= 1 ? 3 : (rewindsUsed <= 3 ? 2 : 1);
-    alert(`Fase ${currentLevelIndex + 1} Concluída!\nEstrelas: ${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}`);
-    skipLevel();
+  let buttonsPressed = [];
+
+  levelData.buttons.forEach(button => {
+
+    const playerPressed =
+      checkOverlap(player,button);
+
+    const ghostPressed =
+      ghostPos
+      ? checkOverlap(
+          {
+            x: ghostPos.x,
+            y: ghostPos.y,
+            w: player.w,
+            h: player.h
+          },
+          button
+        )
+      : false;
+
+    button.pressed =
+      playerPressed || ghostPressed;
+
+    buttonsPressed.push(button.pressed);
+
+  });
+
+
+  /* ESPINHOS */
+
+  for(const spike of levelData.spikes){
+
+    if(checkOverlap(player,spike)){
+
+      restartLevel();
+
+      return;
+
+    }
+
   }
+
+
+  /* CAIU */
+
+  if(player.y > canvas.height + 50){
+
+    restartLevel();
+
+    return;
+
+  }
+
+
+  /* PORTA */
+
+  const allButtonsPressed =
+    buttonsPressed.every(Boolean);
+
+
+  if(
+    allButtonsPressed &&
+    checkOverlap(player,levelData.door)
+  ){
+
+    completeLevel();
+
+  }
+
 }
 
-function checkOverlap(r1, r2) {
-  return r1.x < r2.x + r2.w && r1.x + r1.w > r2.x &&
-         r1.y < r2.y + r2.h && r1.y + r1.h > r2.y;
+
+/* =========================================================
+   COMPLETAR FASE
+========================================================= */
+
+function completeLevel(){
+
+  levelFinished = true;
+
+  statusText.textContent = "FASE CONCLUÍDA!";
+
+  setTimeout(() => {
+
+    if(currentLevel < MAX_LEVEL - 1){
+
+      currentLevel++;
+
+      loadLevel();
+
+    }
+
+    else{
+
+      gameRunning = false;
+
+      gameScreen.classList.add("hidden");
+      endScreen.classList.remove("hidden");
+
+    }
+
+  },800);
+
 }
 
-// --- DESENHO DE PERSONAGEM (SPRITE DESENHADO VIA CANVAS) ---
-function drawCharacter(x, y, w, h, facing, bodyColor, eyeColor) {
-  // Corpo / Cabeça
-  ctx.fillStyle = bodyColor;
-  ctx.fillRect(x, y, w, h);
 
-  // Olhos para indicar direção
-  ctx.fillStyle = eyeColor;
-  const eyeSize = 4;
-  const eyeY = y + 8;
-  
-  if (facing === 'right') {
-    ctx.fillRect(x + w - 8, eyeY, eyeSize, eyeSize);
-    ctx.fillRect(x + w - 16, eyeY, eyeSize, eyeSize);
-  } else {
-    ctx.fillRect(x + 4, eyeY, eyeSize, eyeSize);
-    ctx.fillRect(x + 12, eyeY, eyeSize, eyeSize);
+/* =========================================================
+   DESENHO
+========================================================= */
+
+function draw(){
+
+  ctx.clearRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+
+  /* FUNDO */
+
+  const gradient =
+    ctx.createLinearGradient(
+      0,0,0,400
+    );
+
+  gradient.addColorStop(0,"#11121c");
+  gradient.addColorStop(1,"#191b2a");
+
+  ctx.fillStyle = gradient;
+
+  ctx.fillRect(
+    0,0,
+    canvas.width,
+    canvas.height
+  );
+
+
+  /* ESTRELAS */
+
+  ctx.fillStyle = "#33364a";
+
+  for(let i=0;i<35;i++){
+
+    const x =
+      (i * 137) % 800;
+
+    const y =
+      (i * 73) % 300;
+
+    ctx.fillRect(x,y,2,2);
+
   }
+
+
+  /* PLATAFORMAS */
+
+  levelData.platforms.forEach(p => {
+
+    ctx.fillStyle = "#44475a";
+
+    ctx.fillRect(
+      p.x,
+      p.y,
+      p.w,
+      p.h
+    );
+
+    ctx.fillStyle = "#6272a4";
+
+    ctx.fillRect(
+      p.x,
+      p.y,
+      p.w,
+      4
+    );
+
+  });
+
+
+  /* ESPINHOS */
+
+  levelData.spikes.forEach(s => {
+
+    ctx.fillStyle = "#ff5555";
+
+    const count =
+      Math.floor(s.w / 15);
+
+    for(let i=0;i<count;i++){
+
+      ctx.beginPath();
+
+      ctx.moveTo(
+        s.x + i*15,
+        s.y + s.h
+      );
+
+      ctx.lineTo(
+        s.x + i*15 + 7.5,
+        s.y
+      );
+
+      ctx.lineTo(
+        s.x + i*15 + 15,
+        s.y + s.h
+      );
+
+      ctx.closePath();
+
+      ctx.fill();
+
+    }
+
+  });
+
+
+  /* BOTÕES */
+
+  levelData.buttons.forEach(button => {
+
+    ctx.fillStyle =
+      button.pressed
+      ? "#50fa7b"
+      : "#ff5555";
+
+    const height =
+      button.pressed ? 4 : 10;
+
+    const y =
+      button.pressed
+      ? button.y + 6
+      : button.y;
+
+    ctx.fillRect(
+      button.x,
+      y,
+      button.w,
+      height
+    );
+
+  });
+
+
+  /* PORTA */
+
+  const open =
+    levelData.buttons.every(b => b.pressed);
+
+  if(!open){
+
+    ctx.fillStyle = "#ffb86c";
+
+    ctx.fillRect(
+      levelData.door.x,
+      levelData.door.y,
+      levelData.door.w,
+      levelData.door.h
+    );
+
+    ctx.fillStyle = "#111";
+
+    ctx.fillRect(
+      levelData.door.x + 5,
+      levelData.door.y + 25,
+      5,
+      5
+    );
+
+  }
+
+  else{
+
+    ctx.strokeStyle = "#50fa7b";
+
+    ctx.lineWidth = 3;
+
+    ctx.setLineDash([5,5]);
+
+    ctx.strokeRect(
+      levelData.door.x,
+      levelData.door.y,
+      levelData.door.w,
+      levelData.door.h
+    );
+
+    ctx.setLineDash([]);
+
+  }
+
+
+  /* FANTASMA */
+
+  if(ghost){
+
+    const index =
+      Math.min(
+        ghost.frameIndex,
+        ghost.actions.length - 1
+      );
+
+    const pos =
+      ghost.actions[index];
+
+    if(pos){
+
+      ctx.fillStyle =
+        "rgba(80,250,123,.25)";
+
+      ctx.fillRect(
+        pos.x,
+        pos.y,
+        player.w,
+        player.h
+      );
+
+      ctx.strokeStyle =
+        "#50fa7b";
+
+      ctx.strokeRect(
+        pos.x,
+        pos.y,
+        player.w,
+        player.h
+      );
+
+    }
+
+  }
+
+
+  /* JOGADOR */
+
+  ctx.fillStyle = "#8be9fd";
+
+  ctx.fillRect(
+    player.x,
+    player.y,
+    player.w,
+    player.h
+  );
+
+  /* OLHOS */
+
+  ctx.fillStyle = "#111";
+
+  ctx.fillRect(
+    player.x + 5,
+    player.y + 7,
+    4,
+    4
+  );
+
+  ctx.fillRect(
+    player.x + 15,
+    player.y + 7,
+    4,
+    4
+  );
+
 }
 
-// --- DESENHO GERAL ---
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  const lvl = levels[currentLevelIndex];
+/* =========================================================
+   LOOP
+========================================================= */
 
-  // Plataformas
-  ctx.fillStyle = '#44475a';
-  lvl.platforms.forEach(p => ctx.fillRect(p.x, p.y, p.w, p.h));
+function loop(){
 
-  // Botão
-  ctx.fillStyle = lvl.button.pressed ? '#50fa7b' : '#ff5555';
-  ctx.fillRect(lvl.button.x, lvl.button.pressed ? lvl.button.y + 6 : lvl.button.y, lvl.button.w, lvl.button.pressed ? 4 : lvl.button.h);
-
-  // Porta
-  if (!lvl.door.open) {
-    ctx.fillStyle = '#ffb86c';
-    ctx.fillRect(doorX = lvl.door.x, doorY = lvl.door.y, lvl.door.w, lvl.door.h);
-  } else {
-    ctx.strokeStyle = '#ffb86c';
-    ctx.strokeRect(lvl.door.x, lvl.door.y, lvl.door.w, lvl.door.h);
-  }
-
-  // Desenha o Fantasma
-  if (ghost) {
-    const frame = Math.min(ghost.frameIndex, ghost.actions.length - 1);
-    const pos = ghost.actions[frame];
-    drawCharacter(pos.x, pos.y, player.w, player.h, pos.facing || 'right', 'rgba(80, 250, 123, 0.6)', '#111');
-  }
-
-  // Desenha o Jogador Principal
-  drawCharacter(player.x, player.y, player.w, player.h, player.facing, '#8be9fd', '#282a36');
-
-  // HUD
-  if (isGameRunning) {
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 16px monospace';
-    ctx.fillText(`FASE ${currentLevelIndex + 1} / ${levels.length}`, 10, 25);
-    
-    // Estrelas atuais
-    const currentStars = rewindsUsed <= 1 ? 3 : (rewindsUsed <= 3 ? 2 : 1);
-    ctx.fillStyle = '#f1fa8c';
-    ctx.fillText(`Estrelas: ${'★'.repeat(currentStars)}${'☆'.repeat(3 - currentStars)}`, 10, 45);
-  }
-}
-
-function loop() {
   update();
+
   draw();
+
   requestAnimationFrame(loop);
+
 }
+
+
+/* COMEÇAR LOOP */
 
 requestAnimationFrame(loop);
+
 </script>
 
 </body>
