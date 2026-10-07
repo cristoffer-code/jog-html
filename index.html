@@ -180,7 +180,7 @@ const levels = [
     door: { x: 730, y: 280, w: 20, h: 80, open: false },
     spawn: { x: 50, y: 300 }
   },
-  // Fase 4: Dois Botões em Lados Opostos
+  // Fase 4: Dois Botões em Lados Opostos (Agora com botão de tempo!)
   {
     bgType: 'sunset',
     platforms: [
@@ -189,7 +189,7 @@ const levels = [
       { x: 550, y: 260, w: 100, h: 20 }
     ],
     buttons: [
-      { x: 190, y: 250, w: 20, h: 10, type: 'hold', pressed: false },
+      { x: 190, y: 250, w: 20, h: 10, type: 'timer', timerDuration: 220, timer: 0, pressed: false },
       { x: 590, y: 250, w: 20, h: 10, type: 'hold', pressed: false }
     ],
     door: { x: 730, y: 280, w: 20, h: 80, open: false },
@@ -714,60 +714,4 @@ function draw() {
     if (lvl.isPuzzle) {
       ctx.fillStyle = '#111';
       ctx.font = 'bold 12px monospace';
-      ctx.fillText(btn.id, btn.x + 6, btn.y - 4);
-    }
-
-    // Barra do temporizador para botões de tempo
-    if (btn.type === 'timer' && btn.timer > 0) {
-      const pct = btn.timer / btn.timerDuration;
-      ctx.fillStyle = '#f1fa8c';
-      ctx.fillRect(btn.x, btn.y - 6, btn.w * pct, 3);
-    }
-  });
-
-  // Porta
-  ctx.fillStyle = lvl.door.open ? '#50fa7b' : '#ff5555';
-  ctx.fillRect(lvl.door.x, lvl.door.y, lvl.door.w, lvl.door.h);
-  ctx.strokeStyle = '#fff';
-  ctx.strokeRect(lvl.door.x, lvl.door.y, lvl.door.w, lvl.door.h);
-
-  // Fantasma (se ativo)
-  if (ghost && ghost.active) {
-    let idx = Math.floor(ghost.frameIndex);
-    let gPos = idx < ghost.actions.length ? ghost.actions[idx] : ghost.actions[ghost.actions.length - 1];
-    if (gPos) {
-      drawCharacter(gPos.x, gPos.y, player.w, player.h, gPos.facing, '#8be9fd', '#bd93f9', 0.6);
-      
-      const pct = ghost.timer / ghost.maxTimer;
-      ctx.fillStyle = '#8be9fd';
-      ctx.fillRect(gPos.x, gPos.y - 8, player.w * pct, 4);
-    }
-  }
-
-  // Jogador
-  drawCharacter(player.x, player.y, player.w, player.h, player.facing, '#bd93f9', '#50fa7b');
-
-  // Interface Superior (HUD)
-  ctx.fillStyle = '#fff';
-  ctx.font = '14px monospace';
-  ctx.fillText(`Fase: ${currentLevelIndex + 1} / 10`, 15, 25);
-  ctx.fillText(`Dificuldade: ${difficulty.toUpperCase()}`, 15, 45);
-
-  // Dica do Enigma na Fase 10
-  if (lvl.isPuzzle) {
-    ctx.fillStyle = '#f1fa8c';
-    ctx.font = '12px monospace';
-    const seqStr = lvl.puzzleSequence.join(' -> ');
-    ctx.fillText(`ENIGMA: [ ${seqStr} ] (${lvl.currentStep}/5)`, 250, 25);
-  }
-}
-
-function gameLoop() {
-  if (!isGameRunning) return;
-  update();
-  draw();
-  requestAnimationFrame(gameLoop);
-}
-</script>
-</body>
-</html>
+      ctx.fillText(btn.id, btn.x + 6, btn.y - 4
