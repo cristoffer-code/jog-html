@@ -398,8 +398,9 @@ function triggerRewind() {
   ghost = {
     actions: [...player.history],
     frameIndex: 0,
-    timer: 1080,    // <--- Alterado para 1080 quadros (18 segundos)
-    maxTimer: 1080, // <--- Ajustada a barra do HUD para 18 segundos
+    timer: 1200,    // <--- Alterado para 1200 quadros (20 segundos)
+    maxTimer: 1200, // <--- Ajustada a barra do HUD para 20 segundos
+    speedMultiplier: 2, // <--- Fantasma se move 2x mais rápido
     active: true
   };
   const lvl = levels[currentLevelIndex];
@@ -444,7 +445,11 @@ function update() {
   if (ghost && ghost.active) {
     if (ghost.frameIndex < ghost.actions.length) {
       ghostPos = ghost.actions[ghost.frameIndex];
-      ghost.frameIndex++;
+      // Avança a reprodução do fantasma mais rápido (2x)
+      ghost.frameIndex += ghost.speedMultiplier;
+      if (ghost.frameIndex >= ghost.actions.length) {
+        ghost.frameIndex = ghost.actions.length - 1;
+      }
     } else {
       ghostPos = ghost.actions[ghost.actions.length - 1];
     }
@@ -678,7 +683,8 @@ function draw() {
 
   // Fantasma (se ativo)
   if (ghost && ghost.active) {
-    let gPos = ghost.frameIndex < ghost.actions.length ? ghost.actions[ghost.frameIndex] : ghost.actions[ghost.actions.length - 1];
+    let idx = Math.floor(ghost.frameIndex);
+    let gPos = idx < ghost.actions.length ? ghost.actions[idx] : ghost.actions[ghost.actions.length - 1];
     if (gPos) {
       drawCharacter(gPos.x, gPos.y, player.w, player.h, gPos.facing, '#8be9fd', '#bd93f9', 0.6);
       
