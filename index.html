@@ -110,7 +110,7 @@
   <!-- VITÓRIA -->
   <div id="winOverlay" class="overlay" style="display: none;">
     <h1>VICTORY!</h1>
-    <p>Você dominou o tempo e venceu as 10 Fases!</p>
+    <p>Você dominou o tempo e desvendou o enigma final!</p>
     <button class="btn-menu" onclick="resetGame()">Jogar Novamente</button>
   </div>
 
@@ -277,23 +277,29 @@ const levels = [
     door: { x: 740, y: 280, w: 20, h: 80, open: false },
     spawn: { x: 40, y: 300 }
   },
-  // Fase 10: Desafio Final Extremo
+  // Fase 10: ENIGMA DE 5 BOTÕES (SEQUÊNCIA FIXA 4 -> 2 -> 5 -> 3 -> 1)
   {
+    isPuzzle: true,
+    puzzleSequence: [4, 2, 5, 3, 1],
+    currentStep: 0,
     bgType: 'night_fullmoon',
     platforms: [
-      { x: 0, y: 360, w: 150, h: 40 },
-      { x: 200, y: 290, w: 70, h: 20 },
-      { x: 330, y: 220, w: 70, h: 20 },
-      { x: 460, y: 150, w: 70, h: 20 },
-      { x: 600, y: 360, w: 200, h: 40 }
+      { x: 0, y: 360, w: 800, h: 40 },
+      { x: 120, y: 280, w: 70, h: 20 },
+      { x: 250, y: 210, w: 70, h: 20 },
+      { x: 380, y: 140, w: 70, h: 20 },
+      { x: 510, y: 210, w: 70, h: 20 },
+      { x: 640, y: 280, w: 70, h: 20 }
     ],
     buttons: [
-      { x: 225, y: 280, w: 20, h: 10, type: 'timer', timerDuration: 160, timer: 0, pressed: false },
-      { x: 355, y: 210, w: 20, h: 10, type: 'timer', timerDuration: 150, timer: 0, pressed: false },
-      { x: 485, y: 140, w: 20, h: 10, type: 'timer', timerDuration: 140, timer: 0, pressed: false }
+      { id: 1, x: 145, y: 270, w: 20, h: 10, type: 'sequence', pressed: false },
+      { id: 2, x: 275, y: 200, w: 20, h: 10, type: 'sequence', pressed: false },
+      { id: 3, x: 405, y: 130, w: 20, h: 10, type: 'sequence', pressed: false },
+      { id: 4, x: 535, y: 200, w: 20, h: 10, type: 'sequence', pressed: false },
+      { id: 5, x: 665, y: 270, w: 20, h: 10, type: 'sequence', pressed: false }
     ],
-    door: { x: 730, y: 280, w: 20, h: 80, open: false },
-    spawn: { x: 40, y: 300 }
+    door: { x: 740, y: 280, w: 20, h: 80, open: false },
+    spawn: { x: 30, y: 300 }
   }
 ];
 
@@ -333,8 +339,13 @@ function loadLevel(index) {
   ghost = null;
   rewindsUsed = 0;
 
+  if (lvl.isPuzzle) {
+    lvl.currentStep = 0;
+  }
+
   lvl.buttons.forEach(b => {
     b.pressed = false;
+    b.justPressed = false;
     if (b.type === 'timer') b.timer = 0;
   });
   lvl.door.open = false;
@@ -398,9 +409,9 @@ function triggerRewind() {
   ghost = {
     actions: [...player.history],
     frameIndex: 0,
-    timer: 1200,        // Mantido em 20 segundos
+    timer: 1200,
     maxTimer: 1200,
-    speedMultiplier: 1, // <--- Velocidade original (1x)
+    speedMultiplier: 1,
     active: true
   };
   const lvl = levels[currentLevelIndex];
@@ -489,27 +500,58 @@ function update() {
 
   player.history.push({ x: player.x, y: player.y, facing: player.facing });
 
-  let allButtonsActive = true;
-  lvl.buttons.forEach(btn => {
-    const pOnBtn = checkOverlap(player, btn);
-    const gOnBtn = (ghost && ghost.active && ghostPos) ? checkOverlap({ ...ghostPos, w: player.w, h: player.h }, btn) : false;
-    const isSteppedOn = pOnBtn || gOnBtn;
+  // --- LÓGICA DE BOTÕES E ENIGMA ---
+  if (lvl.isPuzzle) {
+    lvl.buttons.forEach(btn => {
+      const pOnBtn = checkOverlap(player, btn);
+      const gOnBtn = (ghost && ghost.active && ghostPos) ? checkOverlap({ ...ghostPos, w: player.w, h: player.h }, btn) : false;
+      const isSteppedOn = pOnBtn || gOnBtn;
 
-    if (btn.type === 'hold') {
-      btn.pressed = isSteppedOn;
-    } else if (btn.type === 'timer') {
-      if (isSteppedOn) {
-        btn.timer = btn.timerDuration;
-      } else if (btn.timer > 0) {
-        btn.timer--;
+      if (isSteppedOn && !btn.justPressed) {
+        btn.justPressed = true;
+
+        const expectedId = lvl.puzzleSequence[lvl.currentStep];
+        if (btn.id === expectedId) {
+          // Passou de etapa
+          btn.pressed = true;
+          lvl.currentStep++;
+          if (lvl.currentStep >= lvl.puzzleSequence.length) {
+            lvl.door.open = true;
+          }
+        } else {
+          // Errou a sequência -> Reseta o progresso!
+          lvl.currentStep = 0;
+          lvl.buttons.forEach(b => b.pressed = false);
+        }
+      } else if (!isSteppedOn) {
+        btn.justPressed = false;
       }
-      btn.pressed = btn.timer > 0;
-    }
+    });
 
-    if (!btn.pressed) allButtonsActive = false;
-  });
+  } else {
+    // Fases Normais
+    let allButtonsActive = true;
+    lvl.buttons.forEach(btn => {
+      const pOnBtn = checkOverlap(player, btn);
+      const gOnBtn = (ghost && ghost.active && ghostPos) ? checkOverlap({ ...ghostPos, w: player.w, h: player.h }, btn) : false;
+      const isSteppedOn = pOnBtn || gOnBtn;
 
-  lvl.door.open = allButtonsActive;
+      if (btn.type === 'hold') {
+        btn.pressed = isSteppedOn;
+      } else if (btn.type === 'timer') {
+        if (isSteppedOn) {
+          btn.timer = btn.timerDuration;
+        } else if (btn.timer > 0) {
+          btn.timer--;
+        }
+        btn.pressed = btn.timer > 0;
+      }
+
+      if (!btn.pressed) allButtonsActive = false;
+    });
+
+    lvl.door.open = allButtonsActive;
+  }
 
   if (lvl.door.open && checkOverlap(player, lvl.door)) {
     skipLevel();
@@ -656,7 +698,9 @@ function draw() {
 
   // Botões
   lvl.buttons.forEach(btn => {
-    if (btn.type === 'hold') {
+    if (lvl.isPuzzle) {
+      ctx.fillStyle = btn.pressed ? '#50fa7b' : '#ffb86c';
+    } else if (btn.type === 'hold') {
       ctx.fillStyle = btn.pressed ? '#50fa7b' : '#ff5555';
     } else {
       ctx.fillStyle = btn.pressed ? '#f1fa8c' : '#ffb86c';
@@ -665,6 +709,13 @@ function draw() {
     const height = btn.pressed ? 4 : btn.h;
     const yPos = btn.pressed ? btn.y + 6 : btn.y;
     ctx.fillRect(btn.x, yPos, btn.w, height);
+
+    // Número do botão para o Enigma
+    if (lvl.isPuzzle) {
+      ctx.fillStyle = '#111';
+      ctx.font = 'bold 12px monospace';
+      ctx.fillText(btn.id, btn.x + 6, btn.y - 4);
+    }
 
     // Barra do temporizador para botões de tempo
     if (btn.type === 'timer' && btn.timer > 0) {
@@ -687,7 +738,6 @@ function draw() {
     if (gPos) {
       drawCharacter(gPos.x, gPos.y, player.w, player.h, gPos.facing, '#8be9fd', '#bd93f9', 0.6);
       
-      // Barra de vida/tempo do fantasma
       const pct = ghost.timer / ghost.maxTimer;
       ctx.fillStyle = '#8be9fd';
       ctx.fillRect(gPos.x, gPos.y - 8, player.w * pct, 4);
@@ -702,6 +752,14 @@ function draw() {
   ctx.font = '14px monospace';
   ctx.fillText(`Fase: ${currentLevelIndex + 1} / 10`, 15, 25);
   ctx.fillText(`Dificuldade: ${difficulty.toUpperCase()}`, 15, 45);
+
+  // Dica do Enigma na Fase 10
+  if (lvl.isPuzzle) {
+    ctx.fillStyle = '#f1fa8c';
+    ctx.font = '12px monospace';
+    const seqStr = lvl.puzzleSequence.join(' -> ');
+    ctx.fillText(`ENIGMA: [ ${seqStr} ] (${lvl.currentStep}/5)`, 250, 25);
+  }
 }
 
 function gameLoop() {
