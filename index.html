@@ -398,9 +398,9 @@ function triggerRewind() {
   ghost = {
     actions: [...player.history],
     frameIndex: 0,
-    timer: 1200,          // Mantido em 20 segundos
+    timer: 1200,        // Mantido em 20 segundos
     maxTimer: 1200,
-    speedMultiplier: 1.5, // <--- Ajustado para 1.5x a velocidade original
+    speedMultiplier: 1, // <--- Velocidade original (1x)
     active: true
   };
   const lvl = levels[currentLevelIndex];
@@ -445,7 +445,6 @@ function update() {
   if (ghost && ghost.active) {
     if (ghost.frameIndex < ghost.actions.length) {
       ghostPos = ghost.actions[Math.floor(ghost.frameIndex)];
-      // Avança a reprodução a 1.5x por frame
       ghost.frameIndex += ghost.speedMultiplier;
       if (ghost.frameIndex >= ghost.actions.length) {
         ghost.frameIndex = ghost.actions.length - 1;
