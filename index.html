@@ -398,8 +398,8 @@ function triggerRewind() {
   ghost = {
     actions: [...player.history],
     frameIndex: 0,
-    timer: 120,
-    maxTimer: 120,
+    timer: 360,    // <--- Alterado para 360 quadros (~6 segundos)
+    maxTimer: 360, // <--- Ajustado também a barra do HUD
     active: true
   };
   const lvl = levels[currentLevelIndex];
